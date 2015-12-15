@@ -107,13 +107,14 @@ def create_or_update_sqs_queue(connection, module):
     result = dict(
         region=module.params.get('region'),
         name=queue_name,
+        attributes=dict(),
     )
-    result.update(queue_attributes)
-
+    
     try:
         queue = connection.get_queue(queue_name)
         if queue:
             # Update existing
+            result['attributes'].update(connection.get_queue_attributes(queue))
             result['changed'] = update_sqs_queue(queue, check_mode=module.check_mode, **queue_attributes)
 
         else:
@@ -121,6 +122,7 @@ def create_or_update_sqs_queue(connection, module):
             if not module.check_mode:
                 queue = connection.create_queue(queue_name)
                 update_sqs_queue(queue, **queue_attributes)
+                result['attributes'].update(connection.get_queue_attributes(queue))
             result['changed'] = True
 
     except BotoServerError:
