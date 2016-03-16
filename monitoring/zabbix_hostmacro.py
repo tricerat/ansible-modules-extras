@@ -108,11 +108,6 @@ class HostMacro(object):
         self._module = module
         self._zapi = zbx
 
-    # exist host
-    def is_host_exist(self, host_name):
-        result = self._zapi.host.exists({'host': host_name})
-        return result
-
     # get host id by host name
     def get_host_id(self, host_name):
         try:
@@ -149,6 +144,8 @@ class HostMacro(object):
     # update host macro
     def update_host_macro(self, host_macro_obj, macro_name, macro_value):
         host_macro_id = host_macro_obj['hostmacroid']
+        if host_macro_obj['macro'] == '{$'+macro_name+'}' and host_macro_obj['value'] == macro_value:
+            self._module.exit_json(changed=False, result="Host macro %s already up to date" % macro_name)
         try:
             if self._module.check_mode:
                 self._module.exit_json(changed=True)
@@ -171,12 +168,12 @@ class HostMacro(object):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            server_url=dict(required=True, aliases=['url']),
-            login_user=dict(required=True),
-            login_password=dict(required=True, no_log=True),
-            host_name=dict(required=True),
-            macro_name=dict(required=True),
-            macro_value=dict(required=True),
+            server_url=dict(type='str', required=True, aliases=['url']),
+            login_user=dict(type='str', required=True),
+            login_password=dict(type='str', required=True, no_log=True),
+            host_name=dict(type='str', required=True),
+            macro_name=dict(type='str', required=True),
+            macro_value=dict(type='str', required=True),
             state=dict(default="present", choices=['present', 'absent']),
             timeout=dict(type='int', default=10)
         ),

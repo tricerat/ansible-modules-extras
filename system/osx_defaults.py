@@ -124,9 +124,11 @@ class OSXDefaults(object):
         if type == "string":
             return str(value)
         elif type in ["bool", "boolean"]:
-            if value.lower() in [True, 1, "true", "1", "yes"]:
+            if isinstance(value, basestring):
+                value = value.lower()
+            if value in [True, 1, "true", "1", "yes"]:
                 return True
-            elif value.lower() in [False, 0, "false", "0", "no"]:
+            elif value in [False, 0, "false", "0", "no"]:
                 return False
             raise OSXDefaultsException("Invalid boolean value: {0}".format(repr(value)))
         elif type == "date":
@@ -255,6 +257,8 @@ class OSXDefaults(object):
             print "Absent state detected!"
             if self.current_value is None:
                 return False
+            if self.module.check_mode:
+                return True
             self.delete()
             return True
 
@@ -271,6 +275,9 @@ class OSXDefaults(object):
                 return False
         elif self.current_value == self.value:
             return False
+
+        if self.module.check_mode:
+            return True
 
         # Change/Create/Set given key/value for domain in defaults
         self.write()
@@ -309,7 +316,7 @@ def main():
             array_add=dict(
                 default=False,
                 required=False,
-                choices=BOOLEANS,
+                type='bool',
             ),
             value=dict(
                 default=None,

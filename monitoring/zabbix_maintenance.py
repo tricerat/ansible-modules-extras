@@ -202,18 +202,6 @@ def delete_maintenance(zbx, maintenance_id):
     return 0, None, None
 
 
-def check_maintenance(zbx, name):
-    try:
-        result = zbx.maintenance.exists(
-            {
-                "name": name
-            }
-        )
-    except BaseException as e:
-        return 1, None, str(e)
-    return 0, result, None
-
-
 def get_group_ids(zbx, host_groups):
     group_ids = []
     for group in host_groups:
@@ -266,14 +254,14 @@ def main():
     module = AnsibleModule(
         argument_spec=dict(
             state=dict(required=False, default='present', choices=['present', 'absent']),
-            server_url=dict(required=True, default=None, aliases=['url']),
+            server_url=dict(type='str', required=True, default=None, aliases=['url']),
             host_names=dict(type='list', required=False, default=None, aliases=['host_name']),
             minutes=dict(type='int', required=False, default=10),
             host_groups=dict(type='list', required=False, default=None, aliases=['host_group']),
-            login_user=dict(required=True),
-            login_password=dict(required=True, no_log=True),
-            name=dict(required=True),
-            desc=dict(required=False, default="Created by Ansible"),
+            login_user=dict(type='str', required=True),
+            login_password=dict(type='str', required=True, no_log=True),
+            name=dict(type='str', required=True),
+            desc=dict(type='str', required=False, default="Created by Ansible"),
             collect_data=dict(type='bool', required=False, default=True),
         ),
         supports_check_mode=True,
@@ -325,11 +313,11 @@ def main():
         else:
             host_ids = []
 
-        (rc, exists, error) = check_maintenance(zbx, name)
+        (rc, maintenance, error) = get_maintenance_id(zbx, name)
         if rc != 0:
             module.fail_json(msg="Failed to check maintenance %s existance: %s" % (name, error))
 
-        if not exists:
+        if not maintenance:
             if not host_names and not host_groups:
                 module.fail_json(msg="At least one host_name or host_group must be defined for each created maintenance.")
 
@@ -344,24 +332,19 @@ def main():
 
     if state == "absent":
 
-        (rc, exists, error) = check_maintenance(zbx, name)
+        (rc, maintenance, error) = get_maintenance_id(zbx, name)
         if rc != 0:
             module.fail_json(msg="Failed to check maintenance %s existance: %s" % (name, error))
 
-        if exists:
-            (rc, maintenance, error) = get_maintenance_id(zbx, name)
-            if rc != 0:
-                module.fail_json(msg="Failed to get maintenance id: %s" % error)
-
-            if maintenance:
-                if module.check_mode:
+        if maintenance:
+            if module.check_mode:
+                changed = True
+            else:
+                (rc, _, error) = delete_maintenance(zbx, maintenance)
+                if rc == 0:
                     changed = True
                 else:
-                    (rc, _, error) = delete_maintenance(zbx, maintenance)
-                    if rc == 0:
-                        changed = True
-                    else:
-                        module.fail_json(msg="Failed to remove maintenance: %s" % error)
+                    module.fail_json(msg="Failed to remove maintenance: %s" % error)
 
     module.exit_json(changed=changed)
 

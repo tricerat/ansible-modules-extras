@@ -114,7 +114,7 @@ class HostGroup(object):
         try:
             group_add_list = []
             for group_name in group_names:
-                result = self._zapi.hostgroup.exists({'name': group_name})
+                result = self._zapi.hostgroup.get({'filter': {'name': group_name}})
                 if not result:
                     try:
                         if self._module.check_mode:
@@ -150,10 +150,10 @@ class HostGroup(object):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            server_url=dict(required=True, aliases=['url']),
-            login_user=dict(required=True),
-            login_password=dict(required=True, no_log=True),
-            host_groups=dict(required=True, aliases=['host_group']),
+            server_url=dict(type='str', required=True, aliases=['url']),
+            login_user=dict(type='str', required=True),
+            login_password=dict(type='str', required=True, no_log=True),
+            host_groups=dict(type='list', required=True, aliases=['host_group']),
             state=dict(default="present", choices=['present','absent']),
             timeout=dict(type='int', default=10)
         ),

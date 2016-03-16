@@ -381,6 +381,48 @@ EXAMPLES = """
     - test-container-new-archive-destroyed-clone
 """
 
+RETURN="""
+lxc_container:
+    description: container information
+    returned: success
+    type: list
+    contains:
+        name:
+            description: name of the lxc container
+            returned: success
+            type: string
+            sample: test_host
+        init_pid:
+            description: pid of the lxc init process
+            returned: success
+            type: int
+            sample: 19786
+        interfaces:
+            description: list of the container's network interfaces
+            returned: success
+            type: list
+            sample: [ "eth0", "lo" ]
+        ips:
+            description: list of ips
+            returned: success
+            type: list
+            sample: [ "10.0.3.3" ]
+        state:
+            description: resulting state of the container
+            returned: success
+            type: string
+            sample: "running"
+        archive:
+            description: resulting state of the container
+            returned: success, when archive is true
+            type: string
+            sample: "/tmp/test-container-config.tar"
+        clone:
+            description: if the container was cloned
+            returned: success, when clone_name is specified
+            type: boolean
+            sample: True
+"""
 
 try:
     import lxc
@@ -880,7 +922,8 @@ class LxcContainerManagement(object):
             'interfaces': self.container.get_interfaces(),
             'ips': self.container.get_ips(),
             'state': self._get_state(),
-            'init_pid': int(self.container.init_pid)
+            'init_pid': int(self.container.init_pid),
+            'name' : self.container_name,
         }
 
     def _unfreeze(self):
@@ -1684,7 +1727,7 @@ def main():
                 type='str'
             ),
             container_log=dict(
-                choices=BOOLEANS,
+                type='bool',
                 default='false'
             ),
             container_log_level=dict(
@@ -1696,11 +1739,11 @@ def main():
                 required=False
             ),
             clone_snapshot=dict(
-                choices=BOOLEANS,
+                type='bool',
                 default='false'
             ),
             archive=dict(
-                choices=BOOLEANS,
+                type='bool',
                 default='false'
             ),
             archive_path=dict(
